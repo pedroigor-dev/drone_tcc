@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+data/frames/*
+!data/frames/.gitkeep
+data/missions/
+data/*.mp4

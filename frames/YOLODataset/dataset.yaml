@@ -1,0 +1,10 @@
+path: \\?\C:\Users\joao1\OneDrive\Área de Trabalho\projetos\frames\YOLODataset
+train: images/train
+val: images/val
+test:
+
+names:
+    0: sem rachadura
+    1: rachadura
+    2: Rachadura
+    3: rachaddura
