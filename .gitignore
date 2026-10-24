@@ -26,3 +26,6 @@ Thumbs.db
 *.log
 *.tmp
 ~$*
+
+Claude outputs/
+frontend/dist/

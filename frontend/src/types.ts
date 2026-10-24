@@ -2,6 +2,40 @@ export type Vector3 = [number, number, number]
 export type Vector2 = [number, number]
 export type PathPoint = [number, number, number]
 
+export type CrackAnalysis = {
+  widthMm: number
+  widthUncertaintyMm: number
+  lengthM: number
+  angleDeg: number
+  orientation: 'vertical' | 'horizontal' | 'diagonal' | 'mapeada'
+  elongation: number
+  category: string
+  resolved: boolean
+  resolutionMm: number
+  probableCause: string
+}
+
+export type GrowthRisk = {
+  score: number
+  level: 'baixo' | 'moderado' | 'alto'
+  activity: string
+  factors: string[]
+}
+
+export type GrowthHistory = {
+  missionId: string
+  detectionId: string
+  days: number
+  previousWidthMm: number | null
+  deltaWidthMm: number
+  deltaLengthM: number
+  widthToleranceMm: number
+  lengthToleranceM: number
+  grew: boolean
+}
+
+export type AssistantInfo = { provider: 'ollama' | 'huggingface' | 'regras'; model: string; available: boolean }
+
 export type DetectionStatus = 'nova' | 'em análise' | 'confirmada' | 'descartada'
 export type Severity = 'baixa' | 'moderada' | 'alta'
 
@@ -23,6 +57,9 @@ export type Detection = {
   frameUrl: string
   zone?: string
   frameCenter?: Vector2
+  analysis?: CrackAnalysis
+  risk?: GrowthRisk
+  history?: GrowthHistory | null
   extent?: [number, number, number, number]
 }
 

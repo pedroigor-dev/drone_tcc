@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Box, ChevronDown, Crosshair, Focus, Grid3x3, Layers3, Maximize2, Radio, Route, ScanLine, Square, Video } from 'lucide-react'
+import { Box, ChevronDown, Sparkles, Crosshair, Focus, Grid3x3, Layers3, Maximize2, Radio, Route, ScanLine, Square, Video } from 'lucide-react'
 import { useEdge } from './hooks/useEdge'
 import { loadDemo, fallbackDemo } from './data/demoMission'
 import { edgeApi } from './services/edgeApi'
 import { CameraFeed, ControlSheet, DetailPanel, EventList, Timeline } from './components/Panels'
+import { AssistantPanel } from './components/Assistant'
 import { formatTime } from './utils/format'
 import type { CameraView } from './components/InspectionScene'
 import type { Detection, DetectionStatus, LayerState, MissionData, MissionSummary, Vector2, ViewSource } from './types'
@@ -29,6 +30,7 @@ export default function App() {
   const [layersOpen, setLayersOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [sideTab, setSideTab] = useState<'detail' | 'assistant'>('detail')
   const [demoReview, setDemoReview] = useState<Record<string, DetectionStatus>>({})
   const lastInteraction = useRef(0)
   const knownIds = useRef(new Set<string>())
@@ -183,7 +185,15 @@ export default function App() {
         <div className="scale-note">Distância de voo {distance.toFixed(2)} m · campo {Math.round(footprint[0] * 100)}×{Math.round(footprint[1] * 100)} cm</div>
       </section>
 
-      <DetailPanel detection={selected} onLocate={() => { setView('inspection'); setFitKey((k) => k + 1) }} onReview={review} canReview={canReview} />
+      <div className="side">
+        <div className="side-tabs" role="tablist">
+          <button role="tab" aria-selected={sideTab === 'detail'} className={sideTab === 'detail' ? 'active' : ''} onClick={() => setSideTab('detail')}><ScanLine size={14} /> Ocorrência</button>
+          <button role="tab" aria-selected={sideTab === 'assistant'} className={sideTab === 'assistant' ? 'active' : ''} onClick={() => setSideTab('assistant')}><Sparkles size={14} /> Assistente</button>
+        </div>
+        {sideTab === 'detail'
+          ? <DetailPanel detection={selected} onLocate={() => { setView('inspection'); setFitKey((k) => k + 1) }} onReview={review} canReview={canReview} />
+          : <aside className="card assistant-card"><AssistantPanel data={data} status={edge.status} time={currentTime} following={following} selected={selected} online={edge.connection === 'online'} /></aside>}
+      </div>
     </div>
 
     <Timeline duration={data.duration} time={currentTime} onSeek={(value) => { setPlaying(false); setTime(value) }} playing={playing} onToggle={togglePlay} detections={data.detections} live={following} speed={speed} onSpeed={() => setSpeed((s) => s === 1 ? 2 : s === 2 ? 4 : 1)} onSelect={select} />

@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
+import narrator
 from edge_worker import EdgeConfig, EdgeWorker
 from mission import MissionStore
 
@@ -31,6 +32,13 @@ class StartRequest(BaseModel):
     hfovDeg: float = Field(default=62.0, gt=10, lt=170)
     record: bool = True
     loop: bool = False
+
+
+class ReportRequest(BaseModel):
+    missionId: str | None = None
+    detectionId: str | None = None
+    detection: dict[str, Any] | None = None
+    mission: dict[str, Any] | None = None
 
 
 class StatusRequest(BaseModel):
@@ -142,6 +150,29 @@ def update_detection(detection_id: str, request: StatusRequest) -> dict[str, Any
     if not item:
         raise HTTPException(404, "Ocorrência não encontrada")
     return item
+
+
+@app.get("/api/assistant")
+def assistant_info() -> dict[str, Any]:
+    return narrator.provider()
+
+
+@app.post("/api/report")
+def detection_report(request: ReportRequest) -> StreamingResponse:
+    detection, mission = request.detection, request.mission
+    if request.detectionId:
+        if store.mission and (not request.missionId or request.missionId == store.mission["id"]):
+            snapshot = store.snapshot()
+            detection = next((d for d in snapshot["detections"] if d["id"] == request.detectionId), detection)
+            mission = snapshot["mission"]
+        elif request.missionId and MISSION_ID.match(request.missionId):
+            data = store.load(request.missionId)
+            if data:
+                detection = next((d for d in data["detections"] if d["id"] == request.detectionId), detection)
+                mission = data["mission"]
+    if not detection or "position" not in detection:
+        raise HTTPException(404, "Ocorrência não encontrada")
+    return StreamingResponse(narrator.stream_report(detection, mission), media_type="text/plain; charset=utf-8", headers={"Cache-Control": "no-store", "X-Assistant": narrator.provider()["provider"]})
 
 
 @app.get("/api/missions")

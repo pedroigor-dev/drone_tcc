@@ -1,4 +1,4 @@
-import type { Detection, DetectionStatus, EdgeStatus, MissionData, MissionSummary, StartSettings } from '../types'
+import type { AssistantInfo, Detection, DetectionStatus, EdgeStatus, MissionData, MissionInfo, MissionSummary, StartSettings } from '../types'
 
 async function request<T>(url: string, init?: RequestInit & { timeout?: number }): Promise<T> {
   const response = await fetch(url, {
@@ -38,6 +38,21 @@ export const edgeApi = {
     return normalizeMission(raw, raw.mosaicUrl ?? null)
   },
   setStatus: (id: string, status: DetectionStatus) => request<Detection>(`/api/detections/${encodeURIComponent(id)}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+  assistant: () => request<AssistantInfo>('/api/assistant', { timeout: 2500 }),
+  streamReport: async (body: { missionId?: string | null; detectionId?: string; detection?: Detection; mission?: MissionInfo | null }, onChunk: (text: string) => void, signal: AbortSignal) => {
+    const response = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal })
+    if (!response.ok || !response.body) throw new Error(`Erro ${response.status}`)
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let text = ''
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      text += decoder.decode(value, { stream: true })
+      onChunk(text)
+    }
+    return text
+  },
   socketUrl: () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/inspection`,
   liveFeedUrl: (missionId: string | null) => `/api/live.mjpg?m=${missionId ?? ''}`,
 }

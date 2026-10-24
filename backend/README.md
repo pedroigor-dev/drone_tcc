@@ -43,6 +43,8 @@ A escala em metros depende de **distância da parede** e **FOV horizontal**, con
 | WS | `/ws/inspection` | Snapshot da missão em tempo real |
 | GET | `/api/missions` · `/api/missions/{id}` | Histórico de missões |
 | POST | `/api/detections/{id}/status` | Confirmar ou descartar ocorrência |
+| GET | `/api/assistant` | Provedor de IA ativo |
+| POST | `/api/report` | Laudo da ocorrência em streaming (`missionId`, `detectionId`) |
 
 ## Voo simulado
 
@@ -51,6 +53,27 @@ A escala em metros depende de **distância da parede** e **FOV horizontal**, con
 ```powershell
 python ..\tools\simulate_flight.py --image foto_da_parede.jpg --out data\voo-simulado.mp4 --wall-scale 3 --rows 3
 ```
+
+## Classificação técnica e risco de evolução
+
+Para cada ocorrência, `crack_analysis.py` mede a fissura no frame de maior confiança:
+
+- **Abertura (mm)**: largura equivalente da linha escura (soma da intensidade da fissura ÷ pico ÷ comprimento), resistente a desfoque. A incerteza é de ±1 pixel, convertido em mm pela distância e FOV.
+- **Classe por abertura**: fissura (≤ 0,5 mm), trinca (0,5–1,5 mm), rachadura (1,5–5 mm), fenda (5–10 mm) e brecha (> 10 mm). Se a abertura fica abaixo da resolução da câmera, o sistema informa só o intervalo possível.
+- **Orientação**: vertical, horizontal, diagonal ou mapeada, com a causa provável associada a cada padrão.
+- **Risco de evolução (0–100)**: índice por regras que soma abertura, orientação e comprimento. Quando existe uma missão anterior do mesmo trecho, compara abertura e extensão. Crescimento acima da tolerância de medição marca a fissura como **ativa**.
+
+Para comparar missões, decole sempre do mesmo ponto de referência, porque a posição é relativa ao início do voo. Voe mais perto da parede para medir aberturas menores: a 0,25 m cada pixel vale ≈ 0,47 mm.
+
+## Assistente (laudo com IA)
+
+`narrator.py` gera um laudo em texto a partir **apenas** das medições calculadas. A ordem de escolha é:
+
+1. **Ollama local**, se estiver rodando em `127.0.0.1:11434`. Usa o modelo em `AEGIS_OLLAMA_MODEL` ou o primeiro instalado. Exemplo: `ollama pull llama3.2`.
+2. **Hugging Face**, se a variável `HF_TOKEN` existir. O modelo padrão é `meta-llama/Llama-3.1-8B-Instruct` e pode ser trocado em `AEGIS_HF_MODEL`.
+3. **Modelo de regras local**, sem internet.
+
+`AEGIS_LLM=off` força o modo por regras.
 
 ## Modelo
 

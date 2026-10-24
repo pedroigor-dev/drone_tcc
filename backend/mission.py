@@ -8,6 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from crack_analysis import compare_history, growth_risk
+
+LEVEL_TO_SEVERITY = {"alto": "alta", "moderado": "moderada", "baixo": "baixa"}
 
 def severity_from_length(length_m: float) -> str:
     if length_m >= 0.4:
@@ -33,6 +36,7 @@ class MissionStore:
         self._saved_at = 0.0
         self.max_extent = 2.5
         self._ended: float | None = None
+        self.reference: dict[str, Any] | None = None
 
     @property
     def directory(self) -> Path:
@@ -50,6 +54,7 @@ class MissionStore:
             self._started = time.monotonic()
             self._ended = None
             self.revision += 1
+        self.reference = self._latest_reference(mission_id)
         (self.directory / "frames").mkdir(parents=True, exist_ok=True)
         return mission_id
 
@@ -81,14 +86,54 @@ class MissionStore:
         smaller = min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
         return width * height / max(smaller, 1e-9)
 
-    @staticmethod
-    def _apply_extent(item: dict[str, Any], rect: list[float]) -> None:
+    def _latest_reference(self, exclude: str) -> dict[str, Any] | None:
+        for file in sorted(self.root.glob("INSP-*/mission.json"), reverse=True):
+            if file.parent.name == exclude:
+                continue
+            try:
+                data = json.loads(file.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if data.get("detections"):
+                return data
+        return None
+
+    def _evaluate(self, item: dict[str, Any]) -> None:
+        analysis = item.get("analysis")
+        if not analysis:
+            return
+        history = None
+        if self.reference and self.mission:
+            candidates = [d for d in self.reference["detections"] if d.get("analysis") and d.get("status") != "descartada"]
+            nearest = min(candidates, key=lambda d: math.dist(d["position"][:2], item["position"][:2]), default=None)
+            if nearest and math.dist(nearest["position"][:2], item["position"][:2]) <= 0.3:
+                before = datetime.fromisoformat(self.reference["mission"]["startedAt"])
+                now = datetime.fromisoformat(self.mission["startedAt"])
+                history = compare_history(item, nearest, self.reference["mission"], (now - before).total_seconds() / 86400)
+        item["history"] = history
+        length = max(analysis["lengthM"], item["sizeM"]["height"], item["sizeM"]["width"])
+        item["risk"] = growth_risk(analysis, length, history)
+        item["severity"] = LEVEL_TO_SEVERITY[item["risk"]["level"]]
+
+    def apply_analysis(self, detection_id: str, analysis: dict[str, Any] | None) -> None:
+        if not analysis:
+            return
+        with self.lock:
+            item = next((d for d in self.detections if d["id"] == detection_id), None)
+            if not item:
+                return
+            item["analysis"] = analysis
+            self._evaluate(item)
+            self.revision += 1
+
+    def _apply_extent(self, item: dict[str, Any], rect: list[float]) -> None:
         item["extent"] = [round(v, 4) for v in rect]
         width, height = rect[2] - rect[0], rect[3] - rect[1]
         diagonal = math.hypot(width, height)
         item["position"] = [round((rect[0] + rect[2]) / 2, 3), round((rect[1] + rect[3]) / 2, 3), 0.0]
         item["sizeM"] = {"width": round(width, 3), "height": round(height, 3), "diagonal": round(diagonal, 3)}
         item["severity"] = severity_from_length(diagonal)
+        self._evaluate(item)
 
     def observe(self, candidate: dict[str, Any], rect: list[float]) -> tuple[dict[str, Any], bool]:
         with self.lock:
@@ -101,7 +146,7 @@ class MissionStore:
                         match["firstSeen"] = min(match["firstSeen"], other["firstSeen"])
                         rect = [min(rect[0], other["extent"][0]), min(rect[1], other["extent"][1]), max(rect[2], other["extent"][2]), max(rect[3], other["extent"][3])]
                         if other["confidence"] > match["confidence"]:
-                            match.update({key: other[key] for key in ("confidence", "bbox", "frameUrl", "frameCenter") if key in other})
+                            match.update({key: other[key] for key in ("confidence", "bbox", "frameUrl", "frameCenter", "analysis") if key in other})
                         self.detections.remove(other)
                 merged = [min(rect[0], match["extent"][0]), min(rect[1], match["extent"][1]), max(rect[2], match["extent"][2]), max(rect[3], match["extent"][3])]
                 if (merged[2] - merged[0]) <= self.max_extent and (merged[3] - merged[1]) <= self.max_extent:

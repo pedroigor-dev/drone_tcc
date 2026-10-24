@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronRight, CircleDot, Crosshair, Eye, Pause, Play, Power, Radio, ScanLine, Video, X, XCircle } from 'lucide-react'
 import { formatTime } from '../utils/format'
+import { categoryLabel, num, ORIENTATION_LABEL } from '../utils/report'
 import type { Detection, DetectionStatus, EdgeStatus, MissionData, StartSettings } from '../types'
 
 
@@ -46,7 +47,7 @@ export function EventList({ detections, selected, onSelect, time, replay }: { de
       {!detections.length && <p className="empty-note">Nenhuma anomalia detectada ainda.</p>}
       {detections.map((d) => <button key={d.id} className={`event ${d.id === selected?.id ? 'active' : ''} ${replay && d.firstSeen > time ? 'future' : ''} ${d.status === 'descartada' ? 'dismissed' : ''}`} onClick={() => onSelect(d)}>
         <span className={`sev ${d.severity}`} />
-        <span className="event-main"><b>{d.id}</b><small>{formatTime(d.firstSeen)} · {(d.sizeM.diagonal * 100).toFixed(0)} cm · {STATUS_LABEL[d.status]}</small></span>
+        <span className="event-main"><b>{d.id}</b><small>{d.analysis ? categoryLabel(d) : formatTime(d.firstSeen)} · {d.risk ? `risco ${d.risk.level}` : `${(d.sizeM.diagonal * 100).toFixed(0)} cm`} · {STATUS_LABEL[d.status]}</small></span>
         <span className="event-conf">{Math.round(d.confidence * 100)}%</span>
         <ChevronRight size={14} />
       </button>)}
@@ -56,22 +57,33 @@ export function EventList({ detections, selected, onSelect, time, replay }: { de
 
 export function DetailPanel({ detection, onLocate, onReview, canReview }: { detection: Detection | null; onLocate: () => void; onReview: (status: DetectionStatus) => void; canReview: boolean }) {
   if (!detection) return <aside className="card detail empty"><ScanLine size={24} /><p>Selecione uma ocorrência para ver os detalhes.</p></aside>
+  const a = detection.analysis
+  const risk = detection.risk
+  const history = detection.history
   const rows: [string, string][] = [
-    ['Dimensão estimada', `${(detection.sizeM.width * 100).toFixed(1)} × ${(detection.sizeM.height * 100).toFixed(1)} cm`],
-    ['Posição na superfície', `x ${detection.position[0].toFixed(2)} · y ${detection.position[1].toFixed(2)} m`],
+    ['Posição na superfície', `x ${num(detection.position[0], 2)} · y ${num(detection.position[1], 2)} m`],
     ['Primeira detecção', formatTime(detection.firstSeen)],
     ['Observações', `${detection.observations} frame${detection.observations > 1 ? 's' : ''}`],
     ['Origem espacial', detection.coordinateSource === 'odometry' ? 'Odometria visual' : detection.coordinateSource === 'gps' ? 'GPS' : 'Demonstração'],
   ]
+  const length = a ? Math.max(a.lengthM, detection.sizeM.height, detection.sizeM.width) : detection.sizeM.diagonal
   return <aside className="card detail">
-    <div className="detail-kicker"><span className={`sev ${detection.severity}`} /> Severidade {detection.severity}</div>
-    <div className="detail-title"><h1>{detection.type}</h1><span className={`status-pill ${detection.status.replace(' ', '-')}`}>{STATUS_LABEL[detection.status]}</span></div>
+    <div className="detail-kicker"><span className={`sev ${detection.severity}`} /> {risk ? `Risco de evolução ${risk.level}` : `Severidade ${detection.severity}`}</div>
+    <div className="detail-title"><h1>{a ? categoryLabel(detection) : detection.type}</h1><span className={`status-pill ${detection.status.replace(' ', '-')}`}>{STATUS_LABEL[detection.status]}</span></div>
     <p className="detail-id">{detection.id}</p>
     <EvidenceFrame detection={detection} compact />
-    <div className="confidence">
-      <div><strong>{Math.round(detection.confidence * 100)}<small>%</small></strong><span>confiança do modelo</span></div>
-      <div className="meter"><i style={{ width: `${detection.confidence * 100}%` }} /></div>
+    <div className="class-grid">
+      <div><span>Abertura</span><b>{a ? (a.resolved ? `${num(a.widthMm)} mm` : `< ${num(a.resolutionMm)} mm`) : '—'}</b><small>{a ? `± ${num(a.widthUncertaintyMm)} mm` : 'sem medição'}</small></div>
+      <div><span>Comprimento</span><b>{Math.round(length * 100)} cm</b><small>estimado</small></div>
+      <div><span>Orientação</span><b>{a ? ORIENTATION_LABEL[a.orientation] : '—'}</b><small>{a ? `${Math.round(a.angleDeg)}°` : ''}</small></div>
+      <div><span>Confiança</span><b>{num(detection.confidence * 100)}%</b><small>modelo YOLO</small></div>
     </div>
+    {a && <p className="cause"><span>Causa provável</span>{a.probableCause}</p>}
+    {risk && <div className={`risk ${risk.level}`}>
+      <div className="risk-head"><span>Risco de evolução</span><b>{risk.score}<small>/100</small></b></div>
+      <div className="risk-bar"><i style={{ width: `${risk.score}%` }} /><em style={{ left: '35%' }} /><em style={{ left: '60%' }} /></div>
+      <p>{history ? (history.grew ? `Cresceu ${num(history.deltaWidthMm, 2)} mm desde ${history.missionId} (${num(history.days)} dias). Fissura ativa.` : `Sem crescimento mensurável desde ${history.missionId}.`) : 'Sem missão anterior para medir crescimento.'}</p>
+    </div>}
     <dl className="facts">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     <div className="detail-actions">
       <button onClick={onLocate}><Eye size={14} /> Localizar</button>

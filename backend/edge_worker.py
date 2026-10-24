@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 
 from capture import FrameGrabber
+from crack_analysis import analyze_crack
 from mission import MissionStore
 from surface import PlanarOdometry, SurfaceMosaic, meters_per_pixel
 
@@ -204,6 +205,7 @@ class EdgeWorker:
         }
         detection, improved = self.store.observe(candidate, [left, bottom, right, top])
         if improved:
+            self.store.apply_analysis(detection["id"], analyze_crack(frame, (x1, y1, x2, y2), meters_px * 1000))
             filename = f"{detection['id']}.jpg"
             cv2.imwrite(str(self.store.directory / "frames" / filename), frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
             with self.store.lock:
