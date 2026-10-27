@@ -1,0 +1,28 @@
+{
+  "version": "7.9.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rachadura",
+      "points": [
+        [
+          12.323414487526309,
+          19.86474301172227
+        ],
+        [
+          349.68440036068534,
+          125.66576495341148
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "download-1-1-3c41ef.jpg",
+  "imageData": null,
+  "imageHeight": 140,
+  "imageWidth": 361
+}

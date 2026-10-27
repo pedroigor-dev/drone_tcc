@@ -1,0 +1,35 @@
+{
+  "version": "5.2.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rachadura",
+      "points": [
+        [
+          157.0,
+          141.5
+        ],
+        [
+          230.0,
+          126.0
+        ],
+        [
+          320.0,
+          409.0
+        ],
+        [
+          258.5,
+          429.5
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "frame-20251114-031218-803105-22f86c.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640
+}

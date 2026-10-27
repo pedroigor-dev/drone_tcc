@@ -1,0 +1,28 @@
+{
+  "version": "7.9.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rachadura",
+      "points": [
+        [
+          10.824313072439633,
+          164.4046627810159
+        ],
+        [
+          996.0033305578686,
+          351.5820149875104
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "4387ff-3c534ad9bedc4f198d1c563b3fba792c-mv2-d99bf5.jpg",
+  "imageData": null,
+  "imageHeight": 500,
+  "imageWidth": 1000
+}

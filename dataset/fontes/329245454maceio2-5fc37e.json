@@ -1,0 +1,28 @@
+{
+  "version": "7.9.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rachadura",
+      "points": [
+        [
+          172.38071065989857,
+          308.4263959390863
+        ],
+        [
+          583.3451776649747,
+          702.3350253807108
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "329245454maceio2-5fc37e.jpg",
+  "imageData": null,
+  "imageHeight": 725,
+  "imageWidth": 974
+}

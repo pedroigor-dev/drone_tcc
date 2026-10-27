@@ -1,0 +1,28 @@
+{
+  "version": "7.9.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rachadura",
+      "points": [
+        [
+          415.4621848739497,
+          421.84873949579844
+        ],
+        [
+          1062.18487394958,
+          1158.6554621848743
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "xrachaduras-fissuras-trincas-2-jpg-pagespeed-ic-ld-ql9okmg-c72a1c.jpg",
+  "imageData": null,
+  "imageHeight": 1200,
+  "imageWidth": 1800
+}
